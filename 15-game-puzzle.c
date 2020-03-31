@@ -51,6 +51,7 @@ void KEY_ISR();
 void drawing_png(int i, int j, int array[], int value);
 void clear_screen();
 void plot_pixel(int x, int y, short int line_color);
+void draw_initial_tiles(); // draw initial configuration of tiles
 	
 
 volatile int pixel_buffer_start; // global variable
@@ -596,24 +597,7 @@ void main(){
     volatile int * pixel_ctrl_ptr = (int *)0xFF203020;
     /* Read location of the pixel buffer from the pixel buffer controller */
     pixel_buffer_start = *pixel_ctrl_ptr;
-	clear_screen();
-	//display first block
-	drawing_png(12,12,display_1,12);
-	//displaying second block
-	drawing_png(114,12,display_2,114);
-	//displaying third block
-	drawing_png(216,12,display_3,216);
-	//displaying 4th block
-	drawing_png(12,88,display_4,12);
-	//displaying 5th block
-	drawing_png(114,88,display_5,114);
-	//displayin 6th block
-	drawing_png(216,88,display_6,216);
-	//displaying 7th block
-	drawing_png(12,164,display_7,12);
-	//displaying 7th block
-	drawing_png(114,164,display_8,114);
-
+	draw_initial_tiles();
 
     while(1);
 
@@ -641,7 +625,30 @@ void PS2_ISR(){
 }
 
 
-// draws png tile 1-8
+// draw initial configuration of tiles
+void draw_initial_tiles(){
+    clear_screen();
+    
+    //display first block
+	drawing_png(12,12,display_1,12);
+	//displaying second block
+	drawing_png(114,12,display_2,114);
+	//displaying third block
+	drawing_png(216,12,display_3,216);
+	//displaying 4th block
+	drawing_png(12,88,display_4,12);
+	//displaying 5th block
+	drawing_png(114,88,display_5,114);
+	//displayin 6th block
+	drawing_png(216,88,display_6,216);
+	//displaying 7th block
+	drawing_png(12,164,display_7,12);
+	//displaying 7th block
+	drawing_png(114,164,display_8,114);
+}
+
+
+// draws a png tile 1-8
 void drawing_png(int i, int j, int array[], int value)
 {
 	int W = 90;
