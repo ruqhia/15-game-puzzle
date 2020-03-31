@@ -22,6 +22,7 @@
 
 
 // configuring interrupts
+void config_all_IRQ_interrupts(); // set all signals to configure interrupts
 void set_A9_IRQ_stack(); // initiate the stack pointer for IRQ mode
 void config_GIC(); // configure the general interrupt controller
 void config_PS2(); // configure PS2 to generate interrupts
@@ -44,13 +45,10 @@ void KEY_ISR();
 
 
 void main(){
-    disable_A9_interrupts();
-    set_A9_IRQ_stack();
-    config_GIC();
-    config_PS2();
-    enable_A9_interrupts();
+    
+    config_all_IRQ_interrupts();
 
-    while(1){}
+    while(1);
 
 }
 
@@ -87,6 +85,16 @@ void __attribute__((interrupt))__cs3_isr_irq(){
     }
     
     *((int*) 0xFFFEC110) = interrupt_ID;
+}
+
+
+// set all signals to configure interrupts
+void config_all_IRQ_interrupts(){
+    disable_A9_interrupts();
+    set_A9_IRQ_stack();
+    config_GIC();
+    config_PS2();
+    enable_A9_interrupts();
 }
 
 
