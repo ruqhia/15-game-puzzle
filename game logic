@@ -1,0 +1,18 @@
+int main()
+{
+bool gameOver = false;
+  while(!gameOver)
+  {
+    //code for making a move and updating game board
+    gameOver=check_game_status;
+  }
+    //display you win page
+    
+}
+bool check_game_status()
+{
+  for(int i = 0; i<7; i++)
+  {
+    
+  }
+}
