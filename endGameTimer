@@ -1,0 +1,49 @@
+/* This program demonstrates memory-mapped I/O using C code
+ *
+ * It performs the following: 
+ * 	1. displays SW on LEDR
+ * 	2. displays hex digits corresponding to SW on HEX3-0 */
+char seg7[] = {0x3f, 0x06, 0x5b, 0x4f, 0x66, 0x6d, 0x7d, 0x07, 0x7f, 0x67, 0x77, 
+					0x7c, 0x39, 0x5e, 0x79, 0x71};
+void delay();
+int main(void) {
+	/* Declare volatile pointers to I/O registers (volatile means that IO load
+	 * and store instructions will be used to access these pointer locations, 
+	 * instead of regular memory loads and stores)
+	*/
+	volatile int * LEDR_ptr 	= 0xFF200000;	// red LED address
+	volatile int * SW_ptr		= 0xFF200040;	// SW slide switch address
+	volatile int * HEX3_0_ptr	= 0xFF200020;	// HEX3_HEX0 address
+	//volatile int * HEX3_0_ptr	= 0xFF200020;
+	int value;
+	int value1;
+	int value2;
+	int value3;
+	int inter;
+	int inter2;
+	while(value!=200) {
+		value= value+1;
+		value1 = value%10;
+		inter = value/10;
+		value2 = inter%10;
+		inter2 = value/100;
+		value3= inter2;
+		//value3 = value%1000;
+		wait_for_vsync();
+		*(HEX3_0_ptr) = seg7[value1] | seg7[value2] << 8 | 
+			seg7[value3] << 16;
+		wait_for_vsync();
+	}
+}
+
+void wait_for_vsync () {
+volatile int *pixel_ctrl_ptr = 0xFF203020;
+ int status;
+// make the request for the swap:
+*(pixel_ctrl_ptr) = 1; // writes 1 to the front buffer register, doesn’t change it, is a signal
+ status = *(pixel_ctrl_ptr + 3); // as above, pointer arithmetic says 3
+while ( ( status & 0x01) != 0) 
+{
+ 	 	 status = *(pixel_ctrl_ptr +3);
+ }
+}
