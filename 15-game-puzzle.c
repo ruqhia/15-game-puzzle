@@ -57,7 +57,7 @@ void clear_screen();
 void plot_pixel(int x, int y, short int line_color);
 
 // keyboard tile selections
-void get_selectable_tile(int* selectable_tiles, int* size);
+void get_selectable_tiles(int* selectable_tiles, int* size);
 bool is_tile_position_legal(int position);
 	
 
@@ -86,21 +86,21 @@ int main(){
 // returns array of tile numbers that are selectable by users
 // change the parameter selectale_tiles to the array
 // and puts the number of selectable tiles into size
-void get_selectable_tile(int* selectable_tiles, int* size){
+void get_selectable_tiles(int* selectable_tiles, int* size){
     int temp_ind = 0;
-    if (is_tile_position_legal(no_tile_position + 1)){
-        selectable_tiles[temp_ind] = no_tile_position + 1;
+    if (is_tile_position_legal(no_tile_position - tile_dimension)){
+        selectable_tiles[temp_ind] = no_tile_position - tile_dimension;
         temp_ind += 1;
     } if (is_tile_position_legal(no_tile_position -1)){
         selectable_tiles[temp_ind] = no_tile_position - 1;
         temp_ind += 1;
+    } if (is_tile_position_legal(no_tile_position + 1)){
+        selectable_tiles[temp_ind] = no_tile_position + 1;
+        temp_ind += 1;
     } if (is_tile_position_legal(no_tile_position + tile_dimension)){
         selectable_tiles[temp_ind] = no_tile_position + tile_dimension;
         temp_ind += 1;
-    } if (is_tile_position_legal(no_tile_position - tile_dimension)){
-        selectable_tiles[temp_ind] = no_tile_position - tile_dimension;
-        temp_ind += 1;
-    }
+    } 
     *size = temp_ind;
 }
 
