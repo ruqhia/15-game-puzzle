@@ -50,21 +50,23 @@ void PS2_ISR();
 void KEY_ISR();
 
 // graphics
-void draw_game_tiles(); // draw initial configuration of tiles
-void draw_selected_tile_frame();
+void draw_initial_game_tiles(); // draw initial configuration of tiles
+void draw_selected_tile_frame(bool is_erase);
 int* get_png_of_tile(int num); // returns array of png corresponding to tile number
 void drawing_png(int i, int j, int array[], int value);
 void clear_screen();
 void plot_pixel(int x, int y, short int line_color);
 
 // keyboard tile selections
-void get_selectable_tiles(int* selectable_tiles, int* size);
+void get_selectable_tiles(int* selectable_tiles, int* size, int* current_select_index);
 bool is_tile_position_legal(int position);
+void select_right_selected_tile();
+void select_new_selected_tile(int direction_offset);
 	
 
 volatile int pixel_buffer_start; // global variable
 
-int tile_dimension = 3;
+int TILE_dimension = 3;
 int game_tile_positions[] = {1, 2, 3, 4, 5, 6, 7, 8, NO_TILE};
 int no_tile_position = 8;
 int selected_tile_position = 5;
@@ -77,34 +79,12 @@ int main(){
     volatile int * pixel_ctrl_ptr = (int *)0xFF203020;
     /* Read location of the pixel buffer from the pixel buffer controller */
     pixel_buffer_start = *pixel_ctrl_ptr;
-	draw_game_tiles();
+	draw_initial_game_tiles();
 
     while(1);
 
     return 0;
 
-}
-
-
-// returns array of tile numbers that are selectable by users
-// change the parameter selectale_tiles to the array
-// and puts the number of selectable tiles into size
-void get_selectable_tiles(int* selectable_tiles, int* size){
-    int temp_ind = 0;
-    if (is_tile_position_legal(no_tile_position - tile_dimension)){
-        selectable_tiles[temp_ind] = no_tile_position - tile_dimension;
-        temp_ind += 1;
-    } if (is_tile_position_legal(no_tile_position -1)){
-        selectable_tiles[temp_ind] = no_tile_position - 1;
-        temp_ind += 1;
-    } if (is_tile_position_legal(no_tile_position + 1)){
-        selectable_tiles[temp_ind] = no_tile_position + 1;
-        temp_ind += 1;
-    } if (is_tile_position_legal(no_tile_position + tile_dimension)){
-        selectable_tiles[temp_ind] = no_tile_position + tile_dimension;
-        temp_ind += 1;
-    } 
-    *size = temp_ind;
 }
 
 
@@ -117,8 +97,10 @@ void PS2_ISR(){
     int PS2_data = *(PS2_ptr) & 0xFF;
     if (PS2_data == PS2_R_ARROW){
         *HEX_ptr = 0b00111111;
+        select_new_selected_tile(1);
     } else if (PS2_data == PS2_L_ARROW){
         *HEX_ptr = 0b00000110;
+        select_new_selected_tile(-1);
     } else if (PS2_data == PS2_ENTER){
         *HEX_ptr = 0b01001111;
     } else {
@@ -129,25 +111,99 @@ void PS2_ISR(){
 }
 
 
+// selects new right or left tile, updtes selected tile position and draw frame around it
+// direction_offset = -1 for left, +1 for right
+void select_new_selected_tile(int direction_offset){
+    int selectable_tiles[4]; // array of selectable tile position
+    int selectable_tiles_num; // number of tiles selectable
+    int current_select_index; // index of currently selected tile wrt selectable_tiles array
+
+    get_selectable_tiles(selectable_tiles, selectable_tiles_num, current_select_index);
+
+    int select_index = current_select_index + direction_offset;
+    if (select_index < 0) {
+        select_index += 1;
+    } else if (select_index >= selectable_tiles_num) {
+        select_index -= 1;
+    }
+
+    // erase current frame
+    draw_selected_tile_frame(true);
+
+    // set new tile position and draw frame
+    selected_tile_position = selectable_tiles[select_index];
+    draw_selected_tile_frame(false);
+
+}
+
+
+// returns array of tile numbers that are selectable by users
+// change the parameter selectale_tiles to the array
+// and puts the number of selectable tiles into size
+void get_selectable_tiles(int* selectable_tiles, int* size, int* current_select_index){
+    int temp_ind = 0;
+
+    // above
+    if (is_tile_position_legal(no_tile_position - TILE_dimension)){
+        selectable_tiles[temp_ind] = no_tile_position - TILE_dimension;
+        temp_ind += 1;
+        if (no_tile_position - TILE_dimension == selected_tile_position){
+            *current_select_index = temp_ind;
+        }
+    } 
+
+    // left
+    if (is_tile_position_legal(no_tile_position -1)){
+        selectable_tiles[temp_ind] = no_tile_position - 1;
+        temp_ind += 1;
+        if (no_tile_position - 1 == selected_tile_position){
+            *current_select_index = temp_ind;
+        }
+    } 
+
+    // below
+    if (is_tile_position_legal(no_tile_position + TILE_dimension)){
+        selectable_tiles[temp_ind] = no_tile_position + TILE_dimension;
+        temp_ind += 1;
+        if (no_tile_position + TILE_dimension == selected_tile_position){
+            *current_select_index = temp_ind;
+        }
+    } 
+
+    // right
+    if (is_tile_position_legal(no_tile_position + 1)){
+        selectable_tiles[temp_ind] = no_tile_position + 1;
+        temp_ind += 1;        
+        if (no_tile_position + 1 == selected_tile_position){
+            *current_select_index = temp_ind;
+        }
+
+    } 
+    *size = temp_ind;
+}
+
+
 // draw initial configuration of tiles
-void draw_game_tiles(){
+void draw_initial_game_tiles(){
     clear_screen();
     
-    for (int col = 0; col < tile_dimension; ++col){
-        for (int row = 0; row < tile_dimension; ++row){
+    for (int col = 0; col < TILE_dimension; ++col){
+        for (int row = 0; row < TILE_dimension; ++row){
             drawing_png(12 + row*102, 12 + col*76, 
-                        get_png_of_tile(game_tile_positions[tile_dimension*col + row]),
+                        get_png_of_tile(game_tile_positions[TILE_dimension*col + row]),
                         12 + row*102);
         }
     }
 
-    draw_selected_tile_frame();
+    draw_selected_tile_frame(false);
 }
 
 
-void draw_selected_tile_frame(){
-    int row = selected_tile_position / 3;
-    int col = selected_tile_position % 3;
+// draw frame around selected tile
+void draw_selected_tile_frame(bool is_erase){
+
+    int row = selected_tile_position % 3;
+    int col = selected_tile_position / 3;
 
     int start_pos_x = 12 + row* 102;
     int start_pos_y = 12 + col* 76;
@@ -157,19 +213,28 @@ void draw_selected_tile_frame(){
     int width = 90;
     int height = 64;
 
+    short int color = 0;
+    if (is_erase){
+        color = 0xFFFF;
+        start_pos_x += 1;
+        start_pos_y += 1;
+        frame_width_top -= 1;
+        frame_width_side -= 1;
+    }
+
     // draw top and bottom frame
     for (int y_offset = 0; y_offset < frame_width_top; ++y_offset){
         for (int x_offset = 0; x_offset < width; ++x_offset){
-            plot_pixel(start_pos_x + x_offset, start_pos_y + y_offset, 0); // top frame
-            plot_pixel(start_pos_x + x_offset, start_pos_y + y_offset + height - frame_width_top, 0); // bottom frame
+            plot_pixel(start_pos_x + x_offset, start_pos_y + y_offset, color); // top frame
+            plot_pixel(start_pos_x + x_offset, start_pos_y + y_offset + height - frame_width_top, color); // bottom frame
         }
     }
 
     // draw side frames
     for (int x_offset = 0; x_offset < frame_width_side; ++x_offset){
         for (int y_offset = frame_width_top; y_offset < height - frame_width_top; ++y_offset){
-            plot_pixel(start_pos_x + x_offset, start_pos_y + y_offset, 0); // left frame
-            plot_pixel(start_pos_x + x_offset + width - frame_width_side, start_pos_y + y_offset, 0); // right frame
+            plot_pixel(start_pos_x + x_offset, start_pos_y + y_offset, color); // left frame
+            plot_pixel(start_pos_x + x_offset + width - frame_width_side, start_pos_y + y_offset, color); // right frame
         }
     }
 }
@@ -209,7 +274,7 @@ void drawing_png(int i, int j, int array[], int value)
 bool is_tile_position_legal(int position){
     if (position < 0) {
         return false;
-    } else if (position >= tile_dimension*tile_dimension){
+    } else if (position >= TILE_dimension*TILE_dimension){
         return false;
     }
     return true;
