@@ -50,28 +50,58 @@ void PS2_ISR();
 void KEY_ISR();
 
 // graphics
-int* get_png_of_tile(int num);
+void draw_game_tiles(); // draw initial configuration of tiles
+int* get_png_of_tile(int num); // returns array of png corresponding to tile number
 void drawing_png(int i, int j, int array[], int value);
 void clear_screen();
 void plot_pixel(int x, int y, short int line_color);
-void draw_initial_tiles(); // draw initial configuration of tiles
+
+// keyboard tile selections
+void get_selectable_tile(int* selectable_tiles, int* size);
+bool is_tile_position_legal(int position);
 	
 
 volatile int pixel_buffer_start; // global variable
+int tile_dimension = 3;
 int game_tile_positions[] = {1, 2, 3, 4, 5, 6, 7, 8, NO_TILE};
+int no_tile_position = 8;
 
 
-void main(){
+int main(){
     
     config_all_IRQ_interrupts();
 
     volatile int * pixel_ctrl_ptr = (int *)0xFF203020;
     /* Read location of the pixel buffer from the pixel buffer controller */
     pixel_buffer_start = *pixel_ctrl_ptr;
-	draw_initial_tiles();
+	draw_game_tiles();
 
     while(1);
 
+    return 0;
+
+}
+
+
+// returns array of tile numbers that are selectable by users
+// change the parameter selectale_tiles to the array
+// and puts the number of selectable tiles into size
+void get_selectable_tile(int* selectable_tiles, int* size){
+    int temp_ind = 0;
+    if (is_tile_position_legal(no_tile_position + 1)){
+        selectable_tiles[temp_ind] = no_tile_position + 1;
+        temp_ind += 1;
+    } if (is_tile_position_legal(no_tile_position -1)){
+        selectable_tiles[temp_ind] = no_tile_position - 1;
+        temp_ind += 1;
+    } if (is_tile_position_legal(no_tile_position + tile_dimension)){
+        selectable_tiles[temp_ind] = no_tile_position + tile_dimension;
+        temp_ind += 1;
+    } if (is_tile_position_legal(no_tile_position - tile_dimension)){
+        selectable_tiles[temp_ind] = no_tile_position - tile_dimension;
+        temp_ind += 1;
+    }
+    *size = temp_ind;
 }
 
 
@@ -97,13 +127,13 @@ void PS2_ISR(){
 
 
 // draw initial configuration of tiles
-void draw_initial_tiles(){
+void draw_game_tiles(){
     clear_screen();
     
-    for (int col = 0; col < 3; ++col){
-        for (int row = 0; row < 3; ++row){
+    for (int col = 0; col < tile_dimension; ++col){
+        for (int row = 0; row < tile_dimension; ++row){
             drawing_png(12 + row*102, 12 + col*76, 
-                        get_png_of_tile(game_tile_positions[3*col + row]),
+                        get_png_of_tile(game_tile_positions[tile_dimension*col + row]),
                         12 + row*102);
         }
     }
@@ -140,6 +170,17 @@ void drawing_png(int i, int j, int array[], int value)
 }
 
 
+// check if specific position on the board is legal
+bool is_tile_position_legal(int position){
+    if (position < 0) {
+        return false;
+    } else if (position >= tile_dimension*tile_dimension){
+        return false;
+    }
+    return true;
+}
+
+
 void plot_pixel(int x, int y, short int line_color)
 {
     *(short int *)(pixel_buffer_start + (y << 10) + (x << 1)) = line_color;
@@ -150,7 +191,7 @@ void plot_pixel(int x, int y, short int line_color)
 void clear_screen(){
     for (int x = 0; x < 320; ++x){
         for (int y = 0; y < 240; ++y){
-            plot_pixel(x, y, 0xffffff);
+            plot_pixel(x, y, 0xffff);
         }
     }
 }
@@ -795,7 +836,6 @@ int* get_png_of_tile(int num){
         0x0c, 0x56, 0x2b, 0x4e, 0x4a, 0x46, 0x89, 0x3e, 0xa9, 0x3e, 0x68, 0x3e, 0x69, 0x46, 0x6a, 0x4e, 0x49, 0x4e, 0x68, 0x4e, 0x88, 0x46, 0x87, 0x46, 0x87, 0x46, 0x88, 0x46, 0x69, 0x4e, 0x4a, 0x4e, 0x69, 0x4e, 0x69, 0x4e, 0x69, 0x4e, 0x69, 0x4e, 0x69, 0x4e, 0x69, 0x4e, 0x69, 0x4e, 0x69, 0x4e, 0x69, 0x4e, 0x69, 0x4e, 0x69, 0x4e, 0x69, 0x4e, 0x69, 0x4e, 0x69, 0x4e, 0x69, 0x4e, 0x69, 0x4e, 0x69, 0x4e, 0x69, 0x4e, 0x69, 0x4e, 0x69, 0x4e, 0x69, 0x4e, 0x69, 0x4e, 0x69, 0x4e, 0x69, 0x4e, 0x69, 0x4e, 0x69, 0x4e, 0x69, 0x4e, 0x69, 0x4e, 0x69, 0x4e, 0x69, 0x4e, 0x69, 0x4e, 0x69, 0x4e, 0xe1, 0x36, 0xe1, 0x36, 0xe1, 0x36, 0xe1, 0x36, 0xe1, 0x36, 0xe1, 0x36, 0xe1, 0x36, 0xe1, 0x36, 0xe1, 0x36, 0xe1, 0x36, 0xe2, 0x36, 0xa1, 0x2e, 0x61, 0x2e, 0x61, 0x2e, 0xa3, 0x36, 0xe4, 0x3e, 0x49, 0x46, 0x69, 0x46, 0x69, 0x46, 0x69, 0x46, 0x68, 0x46, 0x68, 0x46, 0x87, 0x46, 0x86, 0x3e, 0x85, 0x3e, 0xa4, 0x3e, 0xc3, 0x36, 0xe2, 0x36, 0x01, 0x37, 0x00, 0x2f, 0x20, 0x2f, 0x20, 0x2f, 0xa5, 0x36, 0xc6, 0x46, 0x86, 0x46, 0xc6, 0x46, 0xe7, 0x3e, 0xa6, 0x2e, 0xa7, 0x36, 0xa8, 0x4e, 0x68, 0x46, 0x88, 0x46, 
     };
     static int empty_array[] = {NO_TILE};
-
 
     switch(num){
         case 1:
