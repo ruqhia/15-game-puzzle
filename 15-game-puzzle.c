@@ -51,6 +51,7 @@ void KEY_ISR();
 
 // graphics
 void draw_game_tiles(); // draw initial configuration of tiles
+void draw_selected_tile_frame();
 int* get_png_of_tile(int num); // returns array of png corresponding to tile number
 void drawing_png(int i, int j, int array[], int value);
 void clear_screen();
@@ -62,9 +63,11 @@ bool is_tile_position_legal(int position);
 	
 
 volatile int pixel_buffer_start; // global variable
+
 int tile_dimension = 3;
 int game_tile_positions[] = {1, 2, 3, 4, 5, 6, 7, 8, NO_TILE};
 int no_tile_position = 8;
+int selected_tile_position = 5;
 
 
 int main(){
@@ -135,6 +138,38 @@ void draw_game_tiles(){
             drawing_png(12 + row*102, 12 + col*76, 
                         get_png_of_tile(game_tile_positions[tile_dimension*col + row]),
                         12 + row*102);
+        }
+    }
+
+    draw_selected_tile_frame();
+}
+
+
+void draw_selected_tile_frame(){
+    int row = selected_tile_position / 3;
+    int col = selected_tile_position % 3;
+
+    int start_pos_x = 12 + row* 102;
+    int start_pos_y = 12 + col* 76;
+    
+    int frame_width_top = 5;
+    int frame_width_side = 8;
+    int width = 90;
+    int height = 64;
+
+    // draw top and bottom frame
+    for (int y_offset = 0; y_offset < frame_width_top; ++y_offset){
+        for (int x_offset = 0; x_offset < width; ++x_offset){
+            plot_pixel(start_pos_x + x_offset, start_pos_y + y_offset, 0); // top frame
+            plot_pixel(start_pos_x + x_offset, start_pos_y + y_offset + height - frame_width_top, 0); // bottom frame
+        }
+    }
+
+    // draw side frames
+    for (int x_offset = 0; x_offset < frame_width_side; ++x_offset){
+        for (int y_offset = frame_width_top; y_offset < height - frame_width_top; ++y_offset){
+            plot_pixel(start_pos_x + x_offset, start_pos_y + y_offset, 0); // left frame
+            plot_pixel(start_pos_x + x_offset + width - frame_width_side, start_pos_y + y_offset, 0); // right frame
         }
     }
 }
