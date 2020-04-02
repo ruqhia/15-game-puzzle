@@ -122,7 +122,6 @@ void select_new_selected_tile(int direction_offset){
 
     get_selectable_tiles(&selectable_tiles, &selectable_tiles_num, &current_select_index);
 
-
     int select_index = current_select_index + direction_offset;
     if (select_index < 0) {
         select_index = current_select_index + 1;
@@ -130,7 +129,7 @@ void select_new_selected_tile(int direction_offset){
         select_index = current_select_index - 1;
     }
 
-
+    // for debug
     display_on_hex(selectable_tiles[0], selectable_tiles[1], selectable_tiles[2], selectable_tiles[3], 
                    current_select_index, select_index);
 
@@ -139,7 +138,6 @@ void select_new_selected_tile(int direction_offset){
 
     // set new tile position and draw frame
     selected_tile_position = selectable_tiles[select_index];
-    // display_on_hex(selected_tile_position);
     draw_selected_tile_frame(false);
 
 }
@@ -230,8 +228,8 @@ void draw_selected_tile_frame(bool is_erase){
         color = 0xFFFF;
         start_pos_x += 1;
         start_pos_y += 1;
-        frame_width_top -= 1;
-        frame_width_side -= 1;
+        height -= 2;
+        width -= 2;
     }
 
     // draw top and bottom frame
