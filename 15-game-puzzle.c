@@ -60,8 +60,7 @@ void plot_pixel(int x, int y, short int line_color);
 
 // keyboard tile selections
 void get_selectable_tiles(int* selectable_tiles, int* size, int* current_select_index);
-bool is_tile_position_legal(int position);
-void select_right_selected_tile();
+bool is_tile_position_legal(int new_pos);
 void select_new_selected_tile(int direction_offset);
 void swap_tile();
 
@@ -157,8 +156,8 @@ void select_new_selected_tile(int direction_offset){
     }
 
     // for debug
-    display_on_hex(selectable_tiles[0], selectable_tiles[1], selectable_tiles[2], selectable_tiles[3], 
-                   current_select_index, select_index);
+    // display_on_hex(selectable_tiles[0], selectable_tiles[1], selectable_tiles[2], selectable_tiles[3], 
+    //                current_select_index, select_index);
 
     // erase current frame
     draw_selected_tile_frame(true);
@@ -189,7 +188,7 @@ void get_selectable_tiles(int* selectable_tiles, int* size, int* current_select_
 
     // left
     temp_tile_pos = no_tile_position - 1;
-    if (is_tile_position_legal(temp_tile_pos)){
+    if (is_tile_position_legal(temp_tile_pos) && (temp_tile_pos / 3 == no_tile_position / 3)){
         selectable_tiles[temp_ind] = temp_tile_pos;
         if (temp_tile_pos == selected_tile_position){
             *current_select_index = temp_ind;
@@ -209,7 +208,7 @@ void get_selectable_tiles(int* selectable_tiles, int* size, int* current_select_
 
     // right
     temp_tile_pos = no_tile_position + 1;
-    if (is_tile_position_legal(temp_tile_pos)){
+    if (is_tile_position_legal(temp_tile_pos) && (temp_tile_pos / 3 == no_tile_position / 3)){
         selectable_tiles[temp_ind] = temp_tile_pos;       
         if (temp_tile_pos == selected_tile_position){
             *current_select_index = temp_ind;
@@ -318,12 +317,13 @@ void drawing_png(int i, int j, int array[], int value)
 
 
 // check if specific position on the board is legal
-bool is_tile_position_legal(int position){
-    if (position < 0) {
+bool is_tile_position_legal(int new_pos){
+    if (new_pos < 0) {
         return false;
-    } else if (position >= TILE_dimension*TILE_dimension){
+    } else if (new_pos >= TILE_dimension*TILE_dimension){
         return false;
     }
+    display_on_hex((int) new_pos%TILE_dimension, (int) no_tile_position%TILE_dimension, 16, 16, 16, 16);
     return true;
 }
 
