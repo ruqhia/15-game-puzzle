@@ -88,7 +88,7 @@ int main(){
     /* Read location of the pixel buffer from the pixel buffer controller */
     pixel_buffer_start = *pixel_ctrl_ptr;
 	draw_initial_game_tiles();
-	// counter();
+	counter();
     while(1);
 
     return 0;
@@ -105,12 +105,10 @@ void PS2_ISR(){
     int PS2_data = *(PS2_ptr) & 0xFF;
     if (PS2_data == PS2_R_ARROW)
 	{
-        // *HEX_ptr = 0b00111111;
         select_new_selected_tile(-1);
 	} 
 	else if (PS2_data == PS2_L_ARROW)
 	{
-        // *HEX_ptr = 0b00000110;
         select_new_selected_tile(1);
 	}
 	else if (PS2_data == PS2_ENTER)
@@ -137,9 +135,8 @@ void shuffle()
 void swap_tile(){
 
     // swap selected tile and no tile positions
-    int temp = game_tile_positions[selected_tile_position];
-    game_tile_positions[selected_tile_position] = game_tile_positions[no_tile_position];
-    game_tile_positions[no_tile_position] = temp;
+    game_tile_positions[no_tile_position] = game_tile_positions[selected_tile_position];
+    game_tile_positions[selected_tile_position] = NO_TILE;
 
     // draw new tiles
     draw_tile(selected_tile_position);
@@ -164,7 +161,7 @@ void check_game_status()
 	int count=0;
 	for(int i=0; i<9;i++)
 	{
-		if(game_tile_positions[i]=i)
+		if(game_tile_positions[i]==i)
 		{
 			count++;
 		}
@@ -228,20 +225,15 @@ void select_new_selected_tile(int direction_offset){
     int current_select_index; // index of currently selected tile wrt selectable_tiles array
 
     get_selectable_tiles(&selectable_tiles, &selectable_tiles_num, &current_select_index);
-
-
     int select_index = current_select_index + direction_offset;
 
-    
     if (select_index < 0) {
         select_index = selectable_tiles_num-1;
     } if (select_index >= selectable_tiles_num) {
         select_index = 0;
     }
 
-
-
-        // display_on_hex(1, 2, 3, 4, 5, 6);
+    // display_on_hex(selectable_tiles[0], selectable_tiles[1], selectable_tiles[2], selectable_tiles[3], selectable_tiles_num, current_select_index);
 
     // erase current frame
     draw_selected_tile_frame(true);
@@ -249,11 +241,6 @@ void select_new_selected_tile(int direction_offset){
     // set new tile position and draw frame
     selected_tile_position = selectable_tiles[select_index];
     draw_selected_tile_frame(false);
-
-        // for debug
-    display_on_hex(selectable_tiles[0], selectable_tiles[1], selectable_tiles[2], selectable_tiles_num, 
-                   current_select_index, select_index);
-
 
 }
 
@@ -277,7 +264,7 @@ void get_selectable_tiles(int** selectable_tiles, int* size, int* current_select
 
     // left
     temp_tile_pos = no_tile_position - 1;
-    if (is_tile_position_legal(temp_tile_pos)){
+    if (is_tile_position_legal(temp_tile_pos) && (temp_tile_pos / TILE_dimension == no_tile_position / TILE_dimension)){
         selectable_tiles[temp_ind] = temp_tile_pos;
         if (temp_tile_pos == selected_tile_position){
             *current_select_index = temp_ind;
@@ -297,7 +284,7 @@ void get_selectable_tiles(int** selectable_tiles, int* size, int* current_select
 
     // right
     temp_tile_pos = no_tile_position + 1;
-    if (is_tile_position_legal(temp_tile_pos) && (temp_tile_pos / 3 == no_tile_position / 3)){
+    if (is_tile_position_legal(temp_tile_pos) && (temp_tile_pos / TILE_dimension == no_tile_position / TILE_dimension)){
         selectable_tiles[temp_ind] = temp_tile_pos;       
         if (temp_tile_pos == selected_tile_position){
             *current_select_index = temp_ind;
@@ -313,7 +300,7 @@ void draw_initial_game_tiles(){
     clear_screen();
     
     for (int i = 0; i < 9; ++i){
-        draw_tile_initial(i);
+        draw_tile(i);
     }
 
     draw_selected_tile_frame(false);
