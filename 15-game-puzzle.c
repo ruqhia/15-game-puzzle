@@ -51,6 +51,7 @@ void KEY_ISR();
 
 // graphics
 void draw_initial_game_tiles(); // draw initial configuration of tiles
+void draw_tile(int position);
 void draw_selected_tile_frame(bool is_erase);
 int* get_png_of_tile(int num); // returns array of png corresponding to tile number
 void drawing_png(int i, int j, int array[], int value);
@@ -62,7 +63,9 @@ void get_selectable_tiles(int* selectable_tiles, int* size, int* current_select_
 bool is_tile_position_legal(int position);
 void select_right_selected_tile();
 void select_new_selected_tile(int direction_offset);
+void swap_tile();
 
+// debug; pass 16 for unused num
 void display_on_hex(int num_a, int num_b, int num_c, int num_d, int num_e, int num_f);
 	
 
@@ -104,12 +107,36 @@ void PS2_ISR(){
         // *HEX_ptr = 0b00000110;
         select_new_selected_tile(-1);
     } else if (PS2_data == PS2_ENTER){
-        *HEX_ptr = 0b01001111;
-    } else {
-        *HEX_ptr = 0b00000000;
-    }
+        swap_tile();
+    } 
 
     return;
+}
+
+
+// swap tile at selected position with no tile position
+void swap_tile(){
+
+    // swap selected tile and no tile positions
+    int temp = game_tile_positions[selected_tile_position];
+    game_tile_positions[selected_tile_position] = game_tile_positions[no_tile_position];
+    game_tile_positions[no_tile_position] = temp;
+
+    // draw new tiles
+    draw_tile(selected_tile_position);
+    draw_tile(no_tile_position);
+
+    // set global variable no tile position to selected position
+    no_tile_position = selected_tile_position;
+    // set new selected tile
+    int selectable_tiles[4];
+    int temp1, temp2;
+    get_selectable_tiles(selectable_tiles, &temp1, &temp2);
+    selected_tile_position = selectable_tiles[0];
+
+    // draw frame
+    draw_selected_tile_frame(false);
+
 }
 
 
@@ -197,15 +224,21 @@ void get_selectable_tiles(int* selectable_tiles, int* size, int* current_select_
 void draw_initial_game_tiles(){
     clear_screen();
     
-    for (int col = 0; col < TILE_dimension; ++col){
-        for (int row = 0; row < TILE_dimension; ++row){
-            drawing_png(12 + row*102, 12 + col*76, 
-                        get_png_of_tile(game_tile_positions[TILE_dimension*col + row]),
-                        12 + row*102);
-        }
+    for (int i = 0; i < 9; ++i){
+        draw_tile(i);
     }
 
     draw_selected_tile_frame(false);
+}
+
+
+// draws tile at position 
+void draw_tile(int position){
+    int row = position % 3;
+    int col = position / 3;
+    drawing_png(12 + row*102, 12 + col*76, 
+                        get_png_of_tile(game_tile_positions[TILE_dimension*col + row]),
+                        12 + row*102);
 }
 
 
@@ -253,29 +286,33 @@ void draw_selected_tile_frame(bool is_erase){
 // draws a png tile 1-8
 void drawing_png(int i, int j, int array[], int value)
 {
-    // check for NO_TILE
-    if (array[0] == NO_TILE){
-        return;
-    }
 	int W = 90;
 	int H = 64;
 	int initial = i;
-	for (int k = 0 ; k < W*H*2 - 1; k+= 2) {
-        int red = ((array[k + 1] & 0xF8) >> 3) << 11;
-        int green  = (((array[k] & 0xE0) >> 5)) | ((array[k+1] & 0x7) << 3) ;		
-            
-        int blue = (array[k] & 0x1f);			
-		
-		short int p = red | ( (green << 5) | blue);
-		
-		plot_pixel(i, j, p);
-		
-		i+=1;		  
-        if (i == (W+value)) {
-            i = initial;
-            j+=1;
+    // check for NO_TILE
+    if (array[0] == NO_TILE){
+        for (int x = i; x < i+W; ++x){
+            for (int y = j; y < j+H; ++y){
+                plot_pixel(x, y, 0xFFFF);
+            }
         }
-		
+    } else {
+        for (int k = 0 ; k < W*H*2 - 1; k+= 2) {
+            int red = ((array[k + 1] & 0xF8) >> 3) << 11;
+            int green  = (((array[k] & 0xE0) >> 5)) | ((array[k+1] & 0x7) << 3) ;		
+                
+            int blue = (array[k] & 0x1f);			
+            
+            short int p = red | ( (green << 5) | blue);
+            
+            plot_pixel(i, j, p);
+            
+            i+=1;		  
+            if (i == (W+value)) {
+                i = initial;
+                j+=1;
+            }
+        }
 	}
 }
 
