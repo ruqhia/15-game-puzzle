@@ -58,10 +58,12 @@ void clear_screen();
 void plot_pixel(int x, int y, short int line_color);
 
 // keyboard tile selections
-void get_selectable_tiles(int* selectable_tiles, int* size, int* current_select_index);
+void get_selectable_tiles(int** selectable_tiles, int* size, int* current_select_index);
 bool is_tile_position_legal(int position);
 void select_right_selected_tile();
 void select_new_selected_tile(int direction_offset);
+
+void display_on_hex(int num_a, int num_b, int num_c, int num_d, int num_e, int num_f);
 	
 
 volatile int pixel_buffer_start; // global variable
@@ -96,10 +98,10 @@ void PS2_ISR(){
 
     int PS2_data = *(PS2_ptr) & 0xFF;
     if (PS2_data == PS2_R_ARROW){
-        *HEX_ptr = 0b00111111;
+        // *HEX_ptr = 0b00111111;
         select_new_selected_tile(1);
     } else if (PS2_data == PS2_L_ARROW){
-        *HEX_ptr = 0b00000110;
+        // *HEX_ptr = 0b00000110;
         select_new_selected_tile(-1);
     } else if (PS2_data == PS2_ENTER){
         *HEX_ptr = 0b01001111;
@@ -118,20 +120,26 @@ void select_new_selected_tile(int direction_offset){
     int selectable_tiles_num; // number of tiles selectable
     int current_select_index; // index of currently selected tile wrt selectable_tiles array
 
-    get_selectable_tiles(selectable_tiles, selectable_tiles_num, current_select_index);
+    get_selectable_tiles(&selectable_tiles, &selectable_tiles_num, &current_select_index);
+
 
     int select_index = current_select_index + direction_offset;
     if (select_index < 0) {
-        select_index += 1;
-    } else if (select_index >= selectable_tiles_num) {
-        select_index -= 1;
+        select_index = current_select_index + 1;
+    } if (select_index >= selectable_tiles_num) {
+        select_index = current_select_index - 1;
     }
+
+
+    display_on_hex(selectable_tiles[0], selectable_tiles[1], selectable_tiles[2], selectable_tiles[3], 
+                   current_select_index, select_index);
 
     // erase current frame
     draw_selected_tile_frame(true);
 
     // set new tile position and draw frame
     selected_tile_position = selectable_tiles[select_index];
+    // display_on_hex(selected_tile_position);
     draw_selected_tile_frame(false);
 
 }
@@ -140,44 +148,48 @@ void select_new_selected_tile(int direction_offset){
 // returns array of tile numbers that are selectable by users
 // change the parameter selectale_tiles to the array
 // and puts the number of selectable tiles into size
-void get_selectable_tiles(int* selectable_tiles, int* size, int* current_select_index){
+void get_selectable_tiles(int** selectable_tiles, int* size, int* current_select_index){
     int temp_ind = 0;
+    int temp_tile_pos;
 
     // above
-    if (is_tile_position_legal(no_tile_position - TILE_dimension)){
-        selectable_tiles[temp_ind] = no_tile_position - TILE_dimension;
-        temp_ind += 1;
-        if (no_tile_position - TILE_dimension == selected_tile_position){
+    temp_tile_pos = no_tile_position - TILE_dimension;
+    if (is_tile_position_legal(temp_tile_pos)){
+        selectable_tiles[temp_ind] = temp_tile_pos;
+        if (temp_tile_pos == selected_tile_position){
             *current_select_index = temp_ind;
         }
+        temp_ind += 1;
     } 
 
     // left
-    if (is_tile_position_legal(no_tile_position -1)){
-        selectable_tiles[temp_ind] = no_tile_position - 1;
-        temp_ind += 1;
-        if (no_tile_position - 1 == selected_tile_position){
+    temp_tile_pos = no_tile_position - 1;
+    if (is_tile_position_legal(temp_tile_pos)){
+        selectable_tiles[temp_ind] = temp_tile_pos;
+        if (temp_tile_pos == selected_tile_position){
             *current_select_index = temp_ind;
         }
+        temp_ind += 1;
     } 
 
     // below
-    if (is_tile_position_legal(no_tile_position + TILE_dimension)){
-        selectable_tiles[temp_ind] = no_tile_position + TILE_dimension;
-        temp_ind += 1;
-        if (no_tile_position + TILE_dimension == selected_tile_position){
+    temp_tile_pos = no_tile_position + TILE_dimension;
+    if (is_tile_position_legal(temp_tile_pos)){
+        selectable_tiles[temp_ind] = temp_tile_pos;
+        if (temp_tile_pos == selected_tile_position){
             *current_select_index = temp_ind;
         }
+        temp_ind += 1;
     } 
 
     // right
-    if (is_tile_position_legal(no_tile_position + 1)){
-        selectable_tiles[temp_ind] = no_tile_position + 1;
-        temp_ind += 1;        
-        if (no_tile_position + 1 == selected_tile_position){
+    temp_tile_pos = no_tile_position + 1;
+    if (is_tile_position_legal(temp_tile_pos)){
+        selectable_tiles[temp_ind] = temp_tile_pos;       
+        if (temp_tile_pos == selected_tile_position){
             *current_select_index = temp_ind;
         }
-
+        temp_ind += 1; 
     } 
     *size = temp_ind;
 }
@@ -402,6 +414,19 @@ void config_interrupts(int N, int CPU_target){
     address = 0xFFFED800 + reg_offset + index;
 
     *(char *) address = (char)CPU_target;
+}
+
+
+void display_on_hex(int num_a, int num_b, int num_c, int num_d, int num_e, int num_f){
+    volatile int* HEX_3_0_ptr = (int *) 0xFF200020;
+
+    unsigned char seven_seg[] = {0x3f, 0x06, 0x5b, 0x4f, 0x66, 0x6d, 0x7d, 0x07,
+                                 0x7f, 0x67, 0x77, 0x7c, 0x39, 0x5e, 0x79, 0x71, 0x0};
+    *HEX_3_0_ptr = (seven_seg[num_d] << 24) | (seven_seg[num_c] << 16) | (seven_seg[num_b] << 8) | (seven_seg[num_a]);
+
+    volatile int* HEX_5_4_ptr = HEX_3_0_ptr + 4;
+    *HEX_5_4_ptr = seven_seg[num_f] << 8 | seven_seg[num_e];
+
 }
 
 
