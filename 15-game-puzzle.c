@@ -22,6 +22,7 @@
 #define PS2_IRQ 			  79            // Interrupt ID
 #define PS2_L_ARROW           0x6B
 #define PS2_R_ARROW           0x74
+#define PS2_U_ARROW           0x75
 #define PS2_ENTER             0x5A
 /* Game variables */
 #define NO_TILE               -1
@@ -35,7 +36,7 @@ void config_PS2(); // configure PS2 to generate interrupts
 void disable_A9_interrupts(); //turn off interrupts
 void enable_A9_interrupts(); // enable interrupts
 void config_interrupts(int N, int CPU_target);
-
+void shuffle();
 // exception handler
 void __attribute__((interrupt))__cs3_isr_irq();
 void __attribute__((interrupt))__cs3_reset();
@@ -99,17 +100,32 @@ void PS2_ISR(){
     volatile int* HEX_ptr = (int *) 0xFF200020;
 
     int PS2_data = *(PS2_ptr) & 0xFF;
-    if (PS2_data == PS2_R_ARROW){
+    if (PS2_data == PS2_R_ARROW)
+	{
         // *HEX_ptr = 0b00111111;
         select_new_selected_tile(1);
-    } else if (PS2_data == PS2_L_ARROW){
+	} 
+	else if (PS2_data == PS2_L_ARROW)
+	{
         // *HEX_ptr = 0b00000110;
         select_new_selected_tile(-1);
-    } else if (PS2_data == PS2_ENTER){
+	}
+	else if (PS2_data == PS2_ENTER)
+	{
         swap_tile();
     } 
+	else  if (PS2_data == PS2_U_ARROW)
+	{
+		shuffle();
+		*HEX_ptr = 0b01001111;
+	} 
 
     return;
+}
+
+void shuffle()
+{
+	draw_initial_game_tiles();
 }
 
 
@@ -134,7 +150,7 @@ void swap_tile(){
     selected_tile_position = selectable_tiles[0];
 
     // draw frame
-    draw_selected_tile_frame(false);
+    //draw_selected_tile_frame(false);
 
 }
 
@@ -235,8 +251,10 @@ void draw_initial_game_tiles(){
 void draw_tile(int position){
     int row = position % 3;
     int col = position / 3;
+	int r = rand() % (8 + 1);
+	
     drawing_png(12 + row*102, 12 + col*76, 
-                        get_png_of_tile(game_tile_positions[TILE_dimension*col + row]),
+                        get_png_of_tile(game_tile_positions[r]),
                         12 + row*102);
 }
 
@@ -1027,3 +1045,4 @@ int* get_png_of_tile(int num){
     }
 
 }
+	
