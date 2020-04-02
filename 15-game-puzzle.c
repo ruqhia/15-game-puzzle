@@ -54,6 +54,7 @@ void KEY_ISR();
 // graphics
 void draw_initial_game_tiles(); // draw initial configuration of tiles
 void draw_tile(int position);
+void draw_tile_initial(int position,int r);
 void draw_selected_tile_frame(bool is_erase);
 int* get_png_of_tile(int num); // returns array of png corresponding to tile number
 void drawing_png(int i, int j, int array[], int value);
@@ -87,6 +88,7 @@ int main(){
     volatile int * pixel_ctrl_ptr = (int *)0xFF203020;
     /* Read location of the pixel buffer from the pixel buffer controller */
     pixel_buffer_start = *pixel_ctrl_ptr;
+	 clear_screen();
 	draw_initial_game_tiles();
 	counter();
     while(1);
@@ -127,7 +129,47 @@ void PS2_ISR(){
 void shuffle()
 {
 	value = 0;
-	draw_initial_game_tiles();
+	//draw_initial_game_tiles();
+	int array[8];
+	
+	array[0]=2;
+	array[1]=1;
+	array[2]=4;
+	array[3]=5;
+	array[4]=7;
+	array[5]=3;
+	array[6]=8;
+	array[7]=6;
+	array[8]=0;
+    game_tile_positions[0]=2;
+	game_tile_positions[1]=1;
+	game_tile_positions[2]=4;
+	game_tile_positions[3]=5;
+	game_tile_positions[4]=7;
+	game_tile_positions[5]=3;
+	game_tile_positions[6]=8;
+	game_tile_positions[7]=6;
+	game_tile_positions[8]=NO_TILE;
+
+	
+	
+    for (int i = 0; i < 9; ++i){
+        draw_tile_initial(i,array[i]);
+    }
+
+    draw_selected_tile_frame(false);
+}
+
+
+// draws tile at position 
+void draw_tile_initial(int position, int r){
+    int row = position % 3;
+    int col = position / 3;
+	//int r = rand() % (8 + 1);
+	
+    drawing_png(12 + row*102, 12 + col*76, 
+                        get_png_of_tile(game_tile_positions[r]),
+                        12 + row*102);
 }
 
 
@@ -297,7 +339,7 @@ void get_selectable_tiles(int** selectable_tiles, int* size, int* current_select
 
 // draw initial configuration of tiles
 void draw_initial_game_tiles(){
-    clear_screen();
+   
     
     for (int i = 0; i < 9; ++i){
         draw_tile(i);
@@ -307,16 +349,6 @@ void draw_initial_game_tiles(){
 }
 
 
-// draws tile at position 
-void draw_tile_initial(int position){
-    int row = position % 3;
-    int col = position / 3;
-	int r = rand() % (8 + 1);
-	
-    drawing_png(12 + row*102, 12 + col*76, 
-                        get_png_of_tile(game_tile_positions[r]),
-                        12 + row*102);
-}
 
 
 void draw_tile(int position){
