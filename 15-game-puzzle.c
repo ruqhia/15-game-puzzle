@@ -27,7 +27,7 @@
 /* Game variables */
 #define NO_TILE               -1
 
-
+int value=0;
 // configuring interrupts
 void config_all_IRQ_interrupts(); // set all signals to configure interrupts
 void set_A9_IRQ_stack(); // initiate the stack pointer for IRQ mode
@@ -37,6 +37,7 @@ void disable_A9_interrupts(); //turn off interrupts
 void enable_A9_interrupts(); // enable interrupts
 void config_interrupts(int N, int CPU_target);
 void shuffle();
+void counter();
 // exception handler
 void __attribute__((interrupt))__cs3_isr_irq();
 void __attribute__((interrupt))__cs3_reset();
@@ -73,6 +74,8 @@ volatile int pixel_buffer_start; // global variable
 
 int TILE_dimension = 3;
 int game_tile_positions[] = {1, 2, 3, 4, 5, 6, 7, 8, NO_TILE};
+char seg7[] = {0x3f, 0x06, 0x5b, 0x4f, 0x66, 0x6d, 0x7d, 0x07, 0x7f, 0x67, 0x77, 
+					0x7c, 0x39, 0x5e, 0x79, 0x71};
 int no_tile_position = 8;
 int selected_tile_position = 5;
 
@@ -85,7 +88,7 @@ int main(){
     /* Read location of the pixel buffer from the pixel buffer controller */
     pixel_buffer_start = *pixel_ctrl_ptr;
 	draw_initial_game_tiles();
-
+	counter();
     while(1);
 
     return 0;
@@ -117,7 +120,6 @@ void PS2_ISR(){
 	else  if (PS2_data == PS2_U_ARROW)
 	{
 		shuffle();
-		*HEX_ptr = 0b01001111;
 	} 
 
     return;
@@ -125,6 +127,7 @@ void PS2_ISR(){
 
 void shuffle()
 {
+	value = 0;
 	draw_initial_game_tiles();
 }
 
@@ -150,10 +153,64 @@ void swap_tile(){
     selected_tile_position = selectable_tiles[0];
 
     // draw frame
-    //draw_selected_tile_frame(false);
-
+    draw_selected_tile_frame(false);
+	check_game_status();
 }
+void check_game_status()
+{
+	int count=0;
+	for(int i=0; i<9;i++)
+	{
+		if(game_tile_positions[i]=i)
+		{
+			count++;
+		}
+	}
+	if(count==8)
+	{
+	}
+	
+}
+void counter()
+{
+	volatile int * HEX3_0_ptr	= 0xFF200020;
 
+	int value1;
+	int value2;
+	int value3;
+	int inter;
+	int inter2;
+	while(value!=900) {
+		value= value+1;
+		value1 = value%10;
+		inter = value/10;
+		value2 = inter%10;
+		inter2 = value/100;
+		value3= inter2;
+		//value3 = value%1000;
+		wait_for_vsync();
+		*(HEX3_0_ptr) = seg7[value1] | seg7[value2] << 8 | 
+			seg7[value3] << 16;
+		wait_for_vsync();
+	}
+	//blank screen for running out of time
+	for (int x = 0; x < 320; ++x)
+	{
+        for (int y = 0; y < 240; ++y)
+            plot_pixel(x, y, 0xFFFF);
+	 }
+}
+void wait_for_vsync () {
+volatile int *pixel_ctrl_ptr = 0xFF203020;
+ int status;
+// make the request for the swap:
+*(pixel_ctrl_ptr) = 1; // writes 1 to the front buffer register, doesn’t change it, is a signal
+ status = *(pixel_ctrl_ptr + 3); // as above, pointer arithmetic says 3
+while ( ( status & 0x01) != 0) 
+{
+ 	 	 status = *(pixel_ctrl_ptr +3);
+ }
+}
 
 // selects new right or left tile, updtes selected tile position and draw frame around it
 // direction_offset = -1 for left, +1 for right
@@ -240,7 +297,7 @@ void draw_initial_game_tiles(){
     clear_screen();
     
     for (int i = 0; i < 9; ++i){
-        draw_tile(i);
+        draw_tile_initial(i);
     }
 
     draw_selected_tile_frame(false);
@@ -248,7 +305,7 @@ void draw_initial_game_tiles(){
 
 
 // draws tile at position 
-void draw_tile(int position){
+void draw_tile_initial(int position){
     int row = position % 3;
     int col = position / 3;
 	int r = rand() % (8 + 1);
@@ -257,7 +314,14 @@ void draw_tile(int position){
                         get_png_of_tile(game_tile_positions[r]),
                         12 + row*102);
 }
-
+void draw_tile(int position){
+    int row = position % 3;
+    int col = position / 3;
+	
+    drawing_png(12 + row*102, 12 + col*76, 
+                        get_png_of_tile(game_tile_positions[TILE_dimension*col + row]),
+                        12 + row*102);
+}
 
 // draw frame around selected tile
 void draw_selected_tile_frame(bool is_erase){
@@ -1045,4 +1109,3 @@ int* get_png_of_tile(int num){
     }
 
 }
-	
