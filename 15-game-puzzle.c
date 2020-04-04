@@ -50,6 +50,10 @@ void __attribute__((interrupt))__cs3_isr_fiq();
 void PS2_ISR();
 void KEY_ISR();
 
+// VGA
+void init_vga_buffer();
+void wait_for_vsync();
+
 // graphics
 void draw_initial_game_tiles(); // draw initial configuration of tiles
 void draw_tile(int position);
@@ -67,7 +71,9 @@ void get_selectable_tiles(int* selectable_tiles, int* size, int* current_select_
 bool is_tile_position_legal(int new_pos);
 void select_new_selected_tile(int direction_offset);
 void swap_tile();
+void reset_selected_tile();
 void drawing_png2(int i, int j, int array[], int value);
+
 // debug; pass 16 for unused num
 void display_on_hex(int num_a, int num_b, int num_c, int num_d, int num_e, int num_f);
 	
@@ -95,7 +101,7 @@ int main(){
     pixel_buffer_start = *pixel_ctrl_ptr;
 	clear_screen();
 	draw_initial_game_tiles();
-	// counter();
+	counter();
     while(1);
 
     return 0;
@@ -150,10 +156,11 @@ void shuffle()
   	
     for (int k = 0; k < 9; ++k){
        draw_tile(k);
-     }
-    draw_selected_tile_frame(false);
-}
+    }
 
+    reset_selected_tile();
+
+}
 
 
 void new_game_board(int array1[], int array2[])
@@ -161,6 +168,9 @@ void new_game_board(int array1[], int array2[])
 	for(int i=0;i<9;i++)
 		{
 			array1[i]=array2[i];
+            if (array2[i] == NO_TILE){
+                no_tile_position = i;
+            }
 		}
 }
 
@@ -177,20 +187,27 @@ void swap_tile(){
 
     // set global variable no tile position to selected position
     no_tile_position = selected_tile_position;
+    reset_selected_tile();
+	check_game_status();
+}
+
+
+// reset selected tile and redraw the frame
+void reset_selected_tile(){
     // set new selected tile
     int selectable_tiles[4];
     int temp1, temp2;
     get_selectable_tiles(selectable_tiles, &temp1, &temp2);
     selected_tile_position = selectable_tiles[0];
-
     // draw frame
     draw_selected_tile_frame(false);
-	check_game_status();
 }
 
 
 // animate the motion of tile moving from selected tile position -> no tile position
 void animate_swap_tile(){
+    volatile int * pixel_ctrl_ptr = (int *)0xFF203020;
+
     int row_selected = selected_tile_position % 3;
     int col_selected = selected_tile_position / 3;
     int row_no_tile = no_tile_position % 3;
@@ -233,7 +250,9 @@ void animate_swap_tile(){
             break;
         }
 
-        wait_for_vsync();
+        wait_for_vsync();        
+        pixel_buffer_start = *(pixel_ctrl_ptr + 1); // new back buffer
+
         // erase
         drawing_png(x_selected, y_selected, get_png_of_tile(NO_TILE), x_selected);
         // move
@@ -265,7 +284,7 @@ void check_game_status()
 
 void counter()
 {
-	volatile int * HEX3_0_ptr	= 0xFF200020;
+	volatile int * HEX3_0_ptr = (int*) 0xFF200020;
 
 	int value1;
 	int value2;
@@ -351,8 +370,6 @@ void select_new_selected_tile(int direction_offset){
     } if (select_index >= selectable_tiles_num) {
         select_index = 0;
     }
-
-    // display_on_hex(selectable_tiles[0], selectable_tiles[1], selectable_tiles[2], selectable_tiles[3], selectable_tiles_num, current_select_index);
 
     // erase current frame
     draw_selected_tile_frame(true);
@@ -551,6 +568,24 @@ void __attribute__((interrupt))__cs3_isr_irq(){
     }
     
     *((int*) 0xFFFEC110) = interrupt_ID;
+}
+
+
+// set front and back buffers of VGA
+void init_vga_buffer(){
+    volatile int * pixel_ctrl_ptr = (int *)0xFF203020;
+
+    /* set front pixel buffer to start of FPGA On-chip memory */
+    *(pixel_ctrl_ptr + 1) = 0xC8000000; // first store the address in the 
+                                        // back buffer
+    /* now, swap the front/back buffers, to set the front buffer location */
+    wait_for_vsync();
+    /* initialize a pointer to the pixel buffer, used by drawing functions */
+    pixel_buffer_start = *pixel_ctrl_ptr;
+    // clear_screen(); // pixel_buffer_start points to the pixel buffer
+    /* set back pixel buffer to start of SDRAM memory */
+    *(pixel_ctrl_ptr + 1) = 0xC0000000;
+    pixel_buffer_start = *(pixel_ctrl_ptr + 1); // we draw on the back buffer
 }
 
 
