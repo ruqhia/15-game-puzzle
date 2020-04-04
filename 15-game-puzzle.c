@@ -59,9 +59,11 @@ int* get_png_of_tile(int num); // returns array of png corresponding to tile num
 void drawing_png(int i, int j, int array[], int value);
 void clear_screen();
 void plot_pixel(int x, int y, short int line_color);
+// animate the motion of tile moving from selected tile position -> no tile position
+void animate_swap_tile();
 
 // keyboard tile selections
-void get_selectable_tiles(int** selectable_tiles, int* size, int* current_select_index);
+void get_selectable_tiles(int* selectable_tiles, int* size, int* current_select_index);
 bool is_tile_position_legal(int new_pos);
 void select_new_selected_tile(int direction_offset);
 void swap_tile();
@@ -93,7 +95,7 @@ int main(){
     pixel_buffer_start = *pixel_ctrl_ptr;
 	clear_screen();
 	draw_initial_game_tiles();
-	counter();
+	// counter();
     while(1);
 
     return 0;
@@ -104,8 +106,6 @@ int main(){
 // ISR for keyboard
 void PS2_ISR(){
     volatile int* PS2_ptr = (int *) PS2_BASE;
-    
-    volatile int* HEX_ptr = (int *) 0xFF200020;
 
     int PS2_data = *(PS2_ptr) & 0xFF;
     if (PS2_data == PS2_R_ARROW)
@@ -168,13 +168,12 @@ void new_game_board(int array1[], int array2[])
 // swap tile at selected position with no tile position
 void swap_tile(){
 
+    // animate tile swapping
+    animate_swap_tile();
+
     // swap selected tile and no tile positions
     game_tile_positions[no_tile_position] = game_tile_positions[selected_tile_position];
     game_tile_positions[selected_tile_position] = NO_TILE;
-
-    // draw new tiles
-    draw_tile(selected_tile_position);
-    draw_tile(no_tile_position);
 
     // set global variable no tile position to selected position
     no_tile_position = selected_tile_position;
@@ -187,6 +186,61 @@ void swap_tile(){
     // draw frame
     draw_selected_tile_frame(false);
 	check_game_status();
+}
+
+
+// animate the motion of tile moving from selected tile position -> no tile position
+void animate_swap_tile(){
+    int row_selected = selected_tile_position % 3;
+    int col_selected = selected_tile_position / 3;
+    int row_no_tile = no_tile_position % 3;
+    int col_no_tile = no_tile_position / 3;
+
+    // determine how much to move by
+    int anim_x = 0;
+    int anim_y = 0;
+    if (row_no_tile == row_selected){
+        if (col_no_tile > col_selected){
+            anim_y = 4;
+        } else if (col_no_tile < col_selected){
+            anim_y = -4;
+        }
+    } else if (col_no_tile == col_selected){
+        if (row_no_tile > row_selected){
+            anim_x = 6;
+        } else if (row_no_tile < row_selected){
+            anim_x = -6;
+        }
+    }
+
+    // current x and y values of selected tile
+    int x_selected = 12 + row_selected*102;
+    int y_selected = 12 + col_selected*76;
+    // erase selected tile
+    drawing_png(x_selected, y_selected, get_png_of_tile(NO_TILE), x_selected);
+    x_selected += anim_x;
+    y_selected += anim_y;
+    while(1){
+        // draw
+        drawing_png(x_selected, y_selected, 
+                    get_png_of_tile(game_tile_positions[selected_tile_position]),
+                    x_selected);
+
+        if (anim_x != 0 && (x_selected == 12 + row_no_tile * 102)){
+            break;
+        } 
+        if (anim_y != 0 && (y_selected == 12 + col_no_tile * 76)){
+            break;
+        }
+
+        wait_for_vsync();
+        // erase
+        drawing_png(x_selected, y_selected, get_png_of_tile(NO_TILE), x_selected);
+        // move
+        x_selected += anim_x;
+        y_selected += anim_y;
+
+    }
 }
 
 
@@ -234,6 +288,8 @@ void counter()
 	clear_screen();
 	drawing_png2(80,40,lose,80);
 }
+
+
 void drawing_png2(int i, int j, int array[], int value)
 {
 	int W = 160;
@@ -267,17 +323,16 @@ void drawing_png2(int i, int j, int array[], int value)
 }
 
 
-
 void wait_for_vsync () {
-volatile int *pixel_ctrl_ptr = 0xFF203020;
- int status;
-// make the request for the swap:
-*(pixel_ctrl_ptr) = 1; // writes 1 to the front buffer register, doesn’t change it, is a signal
- status = *(pixel_ctrl_ptr + 3); // as above, pointer arithmetic says 3
-while ( ( status & 0x01) != 0) 
-{
- 	 	 status = *(pixel_ctrl_ptr +3);
- }
+    volatile int *pixel_ctrl_ptr = (int*) 0xFF203020;
+    register int status;
+    // make the request for the swap:
+    *(pixel_ctrl_ptr) = 1; // writes 1 to the front buffer register, doesn’t change it, is a signal
+    status = *(pixel_ctrl_ptr + 3); // as above, pointer arithmetic says 3
+    while ( ( status & 0x01) != 0) 
+    {
+        status = *(pixel_ctrl_ptr +3);
+    }
 }
 
 
@@ -288,7 +343,7 @@ void select_new_selected_tile(int direction_offset){
     int selectable_tiles_num; // number of tiles selectable
     int current_select_index; // index of currently selected tile wrt selectable_tiles array
 
-    get_selectable_tiles(&selectable_tiles, &selectable_tiles_num, &current_select_index);
+    get_selectable_tiles(selectable_tiles, &selectable_tiles_num, &current_select_index);
     int select_index = current_select_index + direction_offset;
 
     if (select_index < 0) {
@@ -312,7 +367,7 @@ void select_new_selected_tile(int direction_offset){
 // returns array of tile numbers that are selectable by users
 // change the parameter selectale_tiles to the array
 // and puts the number of selectable tiles into size
-void get_selectable_tiles(int** selectable_tiles, int* size, int* current_select_index){
+void get_selectable_tiles(int* selectable_tiles, int* size, int* current_select_index){
     int temp_ind = 0;
     int temp_tile_pos;
 
