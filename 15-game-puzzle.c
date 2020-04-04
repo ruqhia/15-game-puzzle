@@ -81,7 +81,7 @@ void display_on_hex(int num_a, int num_b, int num_c, int num_d, int num_e, int n
 volatile int pixel_buffer_start; // global variable
 
 int TILE_dimension = 3;
-int game_tile_positions[] = {1, 2, 3, 4, 5, 6, 7, 8, NO_TILE};
+int game_tile_positions[9];
 int game0[] = {2,7,3,NO_TILE,1,6,5,4,8};
 int game1[] = {4,NO_TILE,2,5,6,7,8,1,3};
 int game2[] = {3,4,NO_TILE,1,5,8,7,2,6};
@@ -138,21 +138,24 @@ void PS2_ISR(){
 void shuffle()
 {
 	value = 0;
-	if(gameNumber==0||gameNumber==1)
+	if(gameNumber==0||gameNumber==4)
 	{
 		new_game_board(game_tile_positions,game0);
-		gameNumber++;
 	}
-  	 else if(gameNumber==2||gameNumber==3)
+  	 else if(gameNumber==2||gameNumber==5)
 	{
 		new_game_board(game_tile_positions,game1);
-		gameNumber++;
 	}
-	 else if(gameNumber==4||gameNumber==5)
+	 else if(gameNumber==1||gameNumber==3)
 	{
 		new_game_board(game_tile_positions,game2);
-		gameNumber=0;
 	}
+    
+    if (gameNumber == 6){
+        gameNumber = 0;
+    } else {
+        ++gameNumber;
+    }
   	
     for (int k = 0; k < 9; ++k){
        draw_tile(k);
@@ -186,8 +189,10 @@ void swap_tile(){
     game_tile_positions[selected_tile_position] = NO_TILE;
 
     // set global variable no tile position to selected position
+    int temp = no_tile_position;
     no_tile_position = selected_tile_position;
-    reset_selected_tile();
+    selected_tile_position = temp;
+    draw_selected_tile_frame(false);
 	check_game_status();
 }
 
@@ -434,12 +439,10 @@ void get_selectable_tiles(int* selectable_tiles, int* size, int* current_select_
 // draw initial configuration of tiles
 void draw_initial_game_tiles(){
    
+   int gameNumber = rand()%6;
     
-    for (int i = 0; i < 9; ++i){
-        draw_tile(i);
-    }
+    shuffle();
 
-    draw_selected_tile_frame(false);
 }
 
 
