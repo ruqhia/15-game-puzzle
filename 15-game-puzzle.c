@@ -26,7 +26,8 @@
 #define PS2_ENTER             0x5A
 /* Game variables */
 #define NO_TILE               -1
-int value=0;
+#define TILE_dimension        3
+
 // configuring interrupts
 void config_all_IRQ_interrupts(); // set all signals to configure interrupts
 void set_A9_IRQ_stack(); // initiate the stack pointer for IRQ mode
@@ -80,18 +81,17 @@ void display_on_hex(int num_a, int num_b, int num_c, int num_d, int num_e, int n
 
 volatile int pixel_buffer_start; // global variable
 
-int TILE_dimension = 3;
 int game_tile_positions[9];
-int game0[] = {2,7,3,NO_TILE,1,6,5,4,8};
-int game1[] = {4,NO_TILE,2,5,6,7,8,1,3};
-int game2[] = {3,4,NO_TILE,1,5,8,7,2,6};
-int gameNumber=0;
-char seg7[] = {0x3f, 0x06, 0x5b, 0x4f, 0x66, 0x6d, 0x7d, 0x07, 0x7f, 0x67, 0x77, 
-					0x7c, 0x39, 0x5e, 0x79, 0x71};
+int gameNumber = 0;
+int value = 0;
 int no_tile_position = 8;
 int selected_tile_position = 5;
+bool game_over = false;
+
 int win[];
 int lose[];
+
+
 int main(){
     
     config_all_IRQ_interrupts();
@@ -137,6 +137,14 @@ void PS2_ISR(){
 
 void shuffle()
 {
+    if (game_over){
+        game_over = false;
+        clear_screen();
+    }
+
+    int game0[] = {2,7,3,NO_TILE,1,6,5,4,8};
+    int game1[] = {4,NO_TILE,2,5,6,7,8,1,3};
+    int game2[] = {3,4,NO_TILE,1,5,8,7,2,6};
 	value = 0;
 	if(gameNumber==0||gameNumber==4)
 	{
@@ -280,6 +288,7 @@ void check_game_status()
 	}
 	if(count==8)
 	{
+        game_over = true;
 		clear_screen();
 		drawing_png2(80,40,win,80);
 	}
@@ -290,6 +299,9 @@ void check_game_status()
 void counter()
 {
 	volatile int * HEX3_0_ptr = (int*) 0xFF200020;
+
+    char seg7[] = {0x3f, 0x06, 0x5b, 0x4f, 0x66, 0x6d, 0x7d, 0x07, 0x7f, 0x67, 0x77, 
+					0x7c, 0x39, 0x5e, 0x79, 0x71};
 
 	int value1;
 	int value2;
@@ -309,6 +321,7 @@ void counter()
 			seg7[value3] << 16;
 		wait_for_vsync();
 	}
+    game_over = true;
 	clear_screen();
 	drawing_png2(80,40,lose,80);
 }
