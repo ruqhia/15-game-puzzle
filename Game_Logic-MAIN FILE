@@ -25,7 +25,7 @@
 #define PS2_IRQ 			  79            // Interrupt ID
 #define PS2_L_ARROW           0x6B
 #define PS2_R_ARROW           0x74
-#define PS2_BACKSPACE           0x66
+#define PS2_BACKSPACE         0x66
 #define PS2_ENTER             0x5A
 /* Game variables */
 #define NO_TILE               -1
@@ -104,6 +104,8 @@ int main(){
     return 0;
 
 }
+
+
 // set all signals to configure interrupts
 void config_all_IRQ_interrupts(){
     disable_A9_interrupts();
@@ -113,6 +115,7 @@ void config_all_IRQ_interrupts(){
     config_PS2();
     enable_A9_interrupts();
 }
+
 
 void config_interval_timer()
 {
@@ -125,6 +128,7 @@ void config_interval_timer()
 	/* start interval timer, enable its interrupts */
 	*(interval_timer_ptr + 1) = 0x7; // STOP = 0, START = 1, CONT = 1, ITO = 1
 }
+
 
 void set_A9_IRQ_stack(void)
 {
@@ -139,11 +143,15 @@ void set_A9_IRQ_stack(void)
 	mode = INT_DISABLE | SVC_MODE;
 	asm("msr cpsr, %[ps]" : : [ps] "r"(mode));
 }
+
+
 // turn on interrupts in the ARM processor
 void enable_A9_interrupts(){
     int status = INT_ENABLE | SVC_MODE;
     asm("msr cpsr, %[ps]" : : [ps] "r"(status));
 }
+
+
 // configure the Generic Interrupt Controller GIC
 // code taken from DE1-SOC ARM Cortex A9 Document
 void config_GIC(){
@@ -170,6 +178,7 @@ void config_GIC(){
 	*((int *)address) = 1;
 }
 
+
 void __attribute__((interrupt)) __cs3_isr_irq(void)
 {
 	// Read the ICCIAR from the processor interface
@@ -186,6 +195,8 @@ void __attribute__((interrupt)) __cs3_isr_irq(void)
 	*((int *)address) = interrupt_ID;
 	return;
 }
+
+
 // Define the remaining exception handlers
 void __attribute__((interrupt)) __cs3_reset(void)
 {
@@ -212,14 +223,16 @@ void __attribute__((interrupt)) __cs3_isr_fiq(void)
 	while (1);
 }
 
+
 void interval_timer_ISR()
 {
 	volatile int * interval_timer_ptr = (int *)TIMER_BASE;	
 	*(interval_timer_ptr) = 0; // Clear the interrupt
-	count++;
+	if (!game_over){
+        count++;
+    }
 	return;
 }
-
 
 
 // ISR for keyboard
@@ -261,6 +274,7 @@ void PS2_ISR(){
 void shuffle()
 {
     if (game_over){
+        count = 0;
         game_over = false;
         clear_screen();
     }
@@ -717,9 +731,6 @@ void init_vga_buffer(){
 }
 
 
-
-
-
 // configure PS2 to reset & generate interrupts
 void config_PS2(){
     volatile int* PS2_ptr = (int*) PS2_BASE;
@@ -730,18 +741,11 @@ void config_PS2(){
 }
 
 
-
-
 // turn off interrupts in the ARM processor
 void disable_A9_interrupts(){
     int status = INT_DISABLE | SVC_MODE;
     asm("msr cpsr, %[ps]" : : [ps] "r"(status));
 }
-
-
-
-
-
 
 
 // configure ICDISERn and ICDIPTRn
@@ -762,6 +766,7 @@ void config_interrupts(int N, int CPU_target){
 
     *(char *) address = (char)CPU_target;
 }
+
 
 int convert_num(int num){
     if (num < 0 || num >16){
