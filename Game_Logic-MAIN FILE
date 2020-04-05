@@ -7,6 +7,7 @@
 #define INT_ENABLE            0b01000000
 #define IRQ_MODE              0b10010
 #define SVC_MODE              0b10011
+#define TIMER_BASE            0xFF202000	
 /* Memory */
 #define A9_ONCHIP_END         0xFFFFFFFF
 /* Cyclone V FPGA Device */
@@ -15,6 +16,8 @@
 #define MPCORE_GIC_CPUIF      0xFFFEC100    // PERIPH_BASE + 0x100
 #define ICCICR                0x00          // offset to CPU interface control reg
 #define ICCPMR                0x04          // offset to interrupt priority mask reg
+#define ICCEOIR               0x10 	
+#define ICCIAR                0x0C 	
 /* Interrupt controller (GIC) distributor interface(s) */
 #define MPCORE_GIC_DIST       0xFFFED000    // PERIPH_BASE + 0x1000
 #define ICDDCR                0x00          // offset to distributor control reg
@@ -38,14 +41,8 @@ void enable_A9_interrupts(); // enable interrupts
 void config_interrupts(int N, int CPU_target);
 void shuffle();
 void counter();
-// exception handler
-void __attribute__((interrupt))__cs3_isr_irq();
-void __attribute__((interrupt))__cs3_reset();
-void __attribute__((interrupt))__cs3_isr_undef();
-void __attribute__((interrupt))__cs3_isr_swi();
-void __attribute__((interrupt))__cs3_isr_pabort();
-void __attribute__((interrupt))__cs3_isr_dabort();
-void __attribute__((interrupt))__cs3_isr_fiq();
+void config_interval_timer(); // configure Altera interval timer to generate
+
 
 // Interrupt Service Routine
 void PS2_ISR();
@@ -83,6 +80,7 @@ volatile int pixel_buffer_start; // global variable
 int game_tile_positions[9];
 int gameNumber = 0;
 int value = 0;
+int count=0;
 int no_tile_position = 8;
 int selected_tile_position = 5;
 bool game_over = false;
@@ -106,6 +104,122 @@ int main(){
     return 0;
 
 }
+// set all signals to configure interrupts
+void config_all_IRQ_interrupts(){
+    disable_A9_interrupts();
+    set_A9_IRQ_stack();
+    config_GIC();
+	config_interval_timer();
+    config_PS2();
+    enable_A9_interrupts();
+}
+
+void config_interval_timer()
+{
+	volatile int * interval_timer_ptr =
+	(int *)TIMER_BASE; // interal timer base address
+	/* set the interval timer period for scrolling the HEX displays */
+	int counter = 100000000; // 1/(100 MHz) x 5x10^6 = 50 msec
+	*(interval_timer_ptr + 0x2) = (counter & 0xFFFF);
+	*(interval_timer_ptr + 0x3) = (counter >> 16) & 0xFFFF;
+	/* start interval timer, enable its interrupts */
+	*(interval_timer_ptr + 1) = 0x7; // STOP = 0, START = 1, CONT = 1, ITO = 1
+}
+
+void set_A9_IRQ_stack(void)
+{
+	int stack, mode;
+	stack = A9_ONCHIP_END - 7; // top of A9 onchip memory, aligned to 8 bytes
+	/* change processor to IRQ mode with interrupts disabled */
+	mode = INT_DISABLE | IRQ_MODE;
+	asm("msr cpsr, %[ps]" : : [ps] "r"(mode));
+	/* set banked stack pointer */
+	asm("mov sp, %[ps]" : : [ps] "r"(stack));
+	/* go back to SVC mode before executing subroutine return! */
+	mode = INT_DISABLE | SVC_MODE;
+	asm("msr cpsr, %[ps]" : : [ps] "r"(mode));
+}
+// turn on interrupts in the ARM processor
+void enable_A9_interrupts(){
+    int status = INT_ENABLE | SVC_MODE;
+    asm("msr cpsr, %[ps]" : : [ps] "r"(status));
+}
+// configure the Generic Interrupt Controller GIC
+// code taken from DE1-SOC ARM Cortex A9 Document
+void config_GIC(){
+    int address;
+
+    config_interrupts(PS2_IRQ, 1);
+
+    *((int *)0xFFFED8C4) = 0x01000000;
+	*((int *)0xFFFED118) = 0x00000080;
+	/* configure the FPGA interval timer and KEYs interrupts */
+	*((int *)0xFFFED848) = 0x00000101;
+	*((int *)0xFFFED108) = 0x00000300;
+	// Set Interrupt Priority Mask Register (ICCPMR). Enable interrupts of all
+	// priorities
+	address = MPCORE_GIC_CPUIF + ICCPMR;
+	*((int *)address) = 0xFFFF;
+	// Set CPU Interface Control Register (ICCICR). Enable signaling of
+	// interrupts
+	address = MPCORE_GIC_CPUIF + ICCICR;
+	*((int *)address) = 1;
+	// Configure the Distributor Control Register (ICDDCR) to send pending
+	// interrupts to CPUs
+	address = MPCORE_GIC_DIST + ICDDCR;
+	*((int *)address) = 1;
+}
+
+void __attribute__((interrupt)) __cs3_isr_irq(void)
+{
+	// Read the ICCIAR from the processor interface
+	int address = MPCORE_GIC_CPUIF + ICCIAR;
+	int interrupt_ID = *((int *)address);
+	if (interrupt_ID ==72) // check if interrupt is from the Altera timer
+		interval_timer_ISR();
+	else if (interrupt_ID == 79)
+       PS2_ISR();
+	else
+	while (1); // if unexpected, then stay here
+	// Write to the End of Interrupt Register (ICCEOIR)
+	address = MPCORE_GIC_CPUIF + ICCEOIR;
+	*((int *)address) = interrupt_ID;
+	return;
+}
+// Define the remaining exception handlers
+void __attribute__((interrupt)) __cs3_reset(void)
+{
+	while (1);
+}
+void __attribute__((interrupt)) __cs3_isr_undef(void)
+{
+	while (1);
+}
+void __attribute__((interrupt)) __cs3_isr_swi(void)
+{
+	while (1);
+}
+void __attribute__((interrupt)) __cs3_isr_pabort(void)
+{
+	while (1);
+}
+void __attribute__((interrupt)) __cs3_isr_dabort(void)
+{
+	while (1);
+}
+void __attribute__((interrupt)) __cs3_isr_fiq(void)
+{
+	while (1);
+}
+
+void interval_timer_ISR()
+{
+	volatile int * interval_timer_ptr = (int *)TIMER_BASE;	
+	*(interval_timer_ptr) = 0; // Clear the interrupt
+	count++;
+	return;
+}
+
 
 
 // ISR for keyboard
@@ -313,29 +427,27 @@ void check_game_status()
 void counter()
 {
 	volatile int * HEX3_0_ptr = (int*) 0xFF200020;
-
     char seg7[] = {0x3f, 0x06, 0x5b, 0x4f, 0x66, 0x6d, 0x7d, 0x07, 0x7f, 0x67, 0x77, 
 					0x7c, 0x39, 0x5e, 0x79, 0x71};
-
-	int value1;
+    int value1;
 	int value2;
 	int value3;
 	int inter;
 	int inter2;
-	while(value!=900) {
-		value= value+1;
-		value1 = value%10;
-		inter = value/10;
+	while(count<=200) {
+		value1 = count%10;
+		inter = count/10;
 		value2 = inter%10;
-		inter2 = value/100;
+		inter2 = count/100;
 		value3= inter2;
 		//value3 = value%1000;
-		wait_for_vsync();
+		
 		*(HEX3_0_ptr) = seg7[value1] | seg7[value2] << 8 | 
 			seg7[value3] << 16;
-		wait_for_vsync();
+		
 	}
     game_over = true;
+	count=0; 
 	clear_screen();
 	drawing_png2(80,40,lose,80);
 }
@@ -587,20 +699,6 @@ void clear_screen(){
 }
 
 
-// IRQ exception handler
-void __attribute__((interrupt))__cs3_isr_irq(){
-    int interrupt_ID = *((int *) 0xFFFEC10C);
-
-    if (interrupt_ID == PS2_IRQ){
-        PS2_ISR();
-    } else {
-        while(1);
-    }
-    
-    *((int*) 0xFFFEC110) = interrupt_ID;
-}
-
-
 // set front and back buffers of VGA
 void init_vga_buffer(){
     volatile int * pixel_ctrl_ptr = (int *)0xFF203020;
@@ -619,14 +717,7 @@ void init_vga_buffer(){
 }
 
 
-// set all signals to configure interrupts
-void config_all_IRQ_interrupts(){
-    disable_A9_interrupts();
-    set_A9_IRQ_stack();
-    config_GIC();
-    config_PS2();
-    enable_A9_interrupts();
-}
+
 
 
 // configure PS2 to reset & generate interrupts
@@ -639,22 +730,6 @@ void config_PS2(){
 }
 
 
-// initiate the stack pointer for IRQ mode
-// code taken from DE1-SOC ARM Cortex A9 Document
-void set_A9_IRQ_stack(){
-    int stack, mode;
-    stack = A9_ONCHIP_END - 7;
-
-    // change mode
-    mode = INT_DISABLE | IRQ_MODE;
-    asm("msr cpsr, %[ps]" : : [ps] "r"(mode));
-    // set banked stack pointer
-    asm("mov sp, %[ps]" : : [ps] "r"(stack));
-
-    // go back to SVC mode
-    mode = INT_DISABLE | SVC_MODE;
-    asm("msr cpsr, %[ps]" : : [ps] "r"(mode));
-}
 
 
 // turn off interrupts in the ARM processor
@@ -664,33 +739,9 @@ void disable_A9_interrupts(){
 }
 
 
-// turn on interrupts in the ARM processor
-void enable_A9_interrupts(){
-    int status = INT_ENABLE | SVC_MODE;
-    asm("msr cpsr, %[ps]" : : [ps] "r"(status));
-}
 
 
-// configure the Generic Interrupt Controller GIC
-// code taken from DE1-SOC ARM Cortex A9 Document
-void config_GIC(){
-    int address;
 
-    config_interrupts(PS2_IRQ, 1);
-
-    // set ICCPMR
-    address = MPCORE_GIC_CPUIF + ICCPMR;
-    *((int*) address) = 0xFFFF;
-
-    // set CPU ICCICR
-    address = MPCORE_GIC_CPUIF + ICCICR;
-    *((int*) address) = 1;
-
-    // configure ICDDCR
-    address = MPCORE_GIC_DIST + ICDDCR;
-    *((int*) address) = 1;
-
-}
 
 
 // configure ICDISERn and ICDIPTRn
