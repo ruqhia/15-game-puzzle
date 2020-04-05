@@ -290,7 +290,7 @@ void check_game_status()
 			count++;
 		}
 	}
-    display_on_hex(16, 16, 16, 16, 16, count);
+
 	if(count==8)
 	{
         game_over = true;
