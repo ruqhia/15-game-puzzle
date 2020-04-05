@@ -113,22 +113,32 @@ void PS2_ISR(){
     volatile int* PS2_ptr = (int *) PS2_BASE;
 
     int PS2_data = *(PS2_ptr) & 0xFF;
-    if (PS2_data == PS2_R_ARROW)
-	{
-        select_new_selected_tile(-1);
-	} 
-	else if (PS2_data == PS2_L_ARROW)
-	{
-        select_new_selected_tile(1);
-	}
-	else if (PS2_data == PS2_ENTER)
-	{
-        swap_tile();
-    } 
-	else if (PS2_data == PS2_BACKSPACE)
-	{
-		shuffle();
-	} 
+    if (PS2_data == 0xF0) {
+        display_on_hex(16,16,16,16,16,16);
+        PS2_data = *(PS2_ptr) & 0xFF;
+        if (PS2_data == PS2_ENTER)
+        {
+            swap_tile();
+        } 
+        else if (PS2_data == PS2_BACKSPACE)
+        {
+            shuffle();
+        } 
+    } else if (PS2_data == 0xE0) {
+        display_on_hex(16,16,16,16,16,16);
+        PS2_data = *(PS2_ptr) & 0xFF;
+        if (PS2_data == 0xF0){
+            PS2_data = *(PS2_ptr) & 0xFF;
+            if (PS2_data == PS2_R_ARROW)
+            {
+                select_new_selected_tile(-1);
+            } 
+            else if (PS2_data == PS2_L_ARROW)
+            {
+                select_new_selected_tile(1);
+            }
+        }
+    }	
 
     return;
 }
