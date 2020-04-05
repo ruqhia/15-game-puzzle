@@ -22,7 +22,7 @@
 #define PS2_IRQ 			  79            // Interrupt ID
 #define PS2_L_ARROW           0x6B
 #define PS2_R_ARROW           0x74
-#define PS2_U_ARROW           0x75
+#define PS2_BACKSPACE           0x66
 #define PS2_ENTER             0x5A
 /* Game variables */
 #define NO_TILE               -1
@@ -49,7 +49,6 @@ void __attribute__((interrupt))__cs3_isr_fiq();
 
 // Interrupt Service Routine
 void PS2_ISR();
-void KEY_ISR();
 
 // VGA
 void init_vga_buffer();
@@ -126,7 +125,7 @@ void PS2_ISR(){
 	{
         swap_tile();
     } 
-	else  if (PS2_data == PS2_U_ARROW)
+	else if (PS2_data == PS2_BACKSPACE)
 	{
 		shuffle();
 	} 
