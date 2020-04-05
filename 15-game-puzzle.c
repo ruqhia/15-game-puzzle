@@ -250,6 +250,7 @@ void animate_swap_tile(){
     drawing_png(x_selected, y_selected, get_png_of_tile(NO_TILE), x_selected);
     x_selected += anim_x;
     y_selected += anim_y;
+    
     while(1){
         // draw
         drawing_png(x_selected, y_selected, 
