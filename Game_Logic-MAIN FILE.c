@@ -448,11 +448,16 @@ void counter()
 	int value3;
 	int inter;
 	int inter2;
-	while(count<=200) {
-		value1 = count%10;
-		inter = count/10;
+	int second;
+	int minute;
+	while(count<=180)
+	{
+		second=((count % 3600) % 60);
+		minute=(second % 3600)/60;
+		value1 = second%10;
+		inter = second/10;
 		value2 = inter%10;
-		inter2 = count/100;
+		inter2 = count/60;
 		value3= inter2;
 		//value3 = value%1000;
 		
