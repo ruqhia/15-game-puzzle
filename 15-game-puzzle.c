@@ -145,6 +145,7 @@ void shuffle()
     int game0[] = {2,7,3,NO_TILE,1,6,5,4,8};
     int game1[] = {4,NO_TILE,2,5,6,7,8,1,3};
     int game2[] = {3,4,NO_TILE,1,5,8,7,2,6};
+    int game3[] = {1,2,3,4,5,NO_TILE,7,8,6};
 	value = 0;
 	if(gameNumber==0||gameNumber==4)
 	{
@@ -159,7 +160,9 @@ void shuffle()
 		new_game_board(game_tile_positions,game2);
 	}
     
+    // generate an automatic winning board for demo
     if (gameNumber == 6){
+        new_game_board(game_tile_positions, game3);
         gameNumber = 0;
     } else {
         ++gameNumber;
@@ -250,7 +253,7 @@ void animate_swap_tile(){
     drawing_png(x_selected, y_selected, get_png_of_tile(NO_TILE), x_selected);
     x_selected += anim_x;
     y_selected += anim_y;
-    
+
     while(1){
         // draw
         drawing_png(x_selected, y_selected, 
@@ -282,11 +285,12 @@ void check_game_status()
 	int count=0;
 	for(int i=0; i<9;i++)
 	{
-		if(game_tile_positions[i]==i)
+		if(game_tile_positions[i]==i+1)
 		{
 			count++;
 		}
 	}
+    display_on_hex(16, 16, 16, 16, 16, count);
 	if(count==8)
 	{
         game_over = true;
