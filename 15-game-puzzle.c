@@ -231,21 +231,21 @@ void animate_swap_tile(){
     int anim_y = 0;
     if (row_no_tile == row_selected){
         if (col_no_tile > col_selected){
-            anim_y = 4;
+            anim_y = 15;
         } else if (col_no_tile < col_selected){
-            anim_y = -4;
+            anim_y = -15;
         }
     } else if (col_no_tile == col_selected){
         if (row_no_tile > row_selected){
-            anim_x = 6;
+            anim_x = 20;
         } else if (row_no_tile < row_selected){
-            anim_x = -6;
+            anim_x = -20;
         }
     }
 
     // current x and y values of selected tile
-    int x_selected = 12 + row_selected*102;
-    int y_selected = 12 + col_selected*76;
+    int x_selected = 12 + row_selected*100;
+    int y_selected = 12 + col_selected*75;
     // erase selected tile
     drawing_png(x_selected, y_selected, get_png_of_tile(NO_TILE), x_selected);
     x_selected += anim_x;
@@ -256,10 +256,10 @@ void animate_swap_tile(){
                     get_png_of_tile(game_tile_positions[selected_tile_position]),
                     x_selected);
 
-        if (anim_x != 0 && (x_selected == 12 + row_no_tile * 102)){
+        if (anim_x != 0 && (x_selected == 12 + row_no_tile *100)){
             break;
         } 
-        if (anim_y != 0 && (y_selected == 12 + col_no_tile * 76)){
+        if (anim_y != 0 && (y_selected == 12 + col_no_tile *75)){
             break;
         }
 
@@ -465,9 +465,9 @@ void draw_tile(int position){
     int row = position % 3;
     int col = position / 3;
 	
-    drawing_png(12 + row*102, 12 + col*76, 
+    drawing_png(12 + row*100, 12 + col*75, 
                         get_png_of_tile(game_tile_positions[TILE_dimension*col + row]),
-                        12 + row*102);
+                        12 + row*100);
 }
 
 
@@ -477,8 +477,8 @@ void draw_selected_tile_frame(bool is_erase){
     int row = selected_tile_position % 3;
     int col = selected_tile_position / 3;
 
-    int start_pos_x = 12 + row* 102;
-    int start_pos_y = 12 + col* 76;
+    int start_pos_x = 12 + row*100;
+    int start_pos_y = 12 + col*75;
     
     int frame_width_top = 5;
     int frame_width_side = 8;
