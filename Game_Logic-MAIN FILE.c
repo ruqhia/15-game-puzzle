@@ -43,9 +43,9 @@ void shuffle();
 void counter();
 void config_interval_timer(); // configure Altera interval timer to generate
 
-
 // Interrupt Service Routine
 void PS2_ISR();
+void interval_timer_ISR();
 
 // VGA
 void init_vga_buffer();
@@ -70,6 +70,10 @@ void select_new_selected_tile(int direction_offset);
 void swap_tile();
 void reset_selected_tile();
 void drawing_png2(int i, int j, int array[], int value);
+
+// game logic
+void new_game_board(int array1[], int array2[]);
+void check_game_status();
 
 // debug; pass 16 for unused num
 void display_on_hex(int num_a, int num_b, int num_c, int num_d, int num_e, int num_f);
@@ -449,11 +453,11 @@ void counter()
 	int inter;
 	int inter2;
 	int second;
-	int minute;
+	// int minute;
 	while(count<=180)
 	{
 		second=((count % 3600) % 60);
-		minute=(second % 3600)/60;
+		// minute=(second % 3600)/60;
 		value1 = second%10;
 		inter = second/10;
 		value2 = inter%10;
@@ -597,7 +601,7 @@ void get_selectable_tiles(int* selectable_tiles, int* size, int* current_select_
 // draw initial configuration of tiles
 void draw_initial_game_tiles(){
    
-   int gameNumber = rand()%6;
+   gameNumber = rand()%6;
     
     shuffle();
 
