@@ -287,22 +287,60 @@ void shuffle()
     int game1[] = {4,NO_TILE,2,5,6,7,8,1,3};
     int game2[] = {3,4,NO_TILE,1,5,8,7,2,6};
     int game3[] = {1,2,3,4,5,NO_TILE,7,8,6};
+	int game4[] = {4,3,NO_TILE,5,2,1,7,8,6};
+	int game5[] = {2,3,5,1,NO_TILE,6,4,8,7};
+	int game6[] = {2,6,NO_TILE,4,8,3,7,1,5};
+	int game7[] = {1,3,6,8,NO_TILE,5,4,7,2};
+	int game8[] = {NO_TILE,1,3,4,7,5,8,2,6};
+	int game9[] = {NO_TILE,1,2,4,8,3,5,7,6};
+	int game10[] ={2,3,8,NO_TILE,6,5,7,1,4};
 	value = 0;
-	if(gameNumber==0||gameNumber==4)
+	if(gameNumber==0)
 	{
 		new_game_board(game_tile_positions,game0);
 	}
-  	 else if(gameNumber==2||gameNumber==5)
+  	 else if(gameNumber==1)
 	{
 		new_game_board(game_tile_positions,game1);
 	}
-	 else if(gameNumber==1||gameNumber==3)
+	 else if(gameNumber==2)
 	{
 		new_game_board(game_tile_positions,game2);
 	}
-    
+     else if(gameNumber==3)
+	{
+		new_game_board(game_tile_positions,game3);
+	}
+	 else if(gameNumber==4)
+	{
+		new_game_board(game_tile_positions,game4);
+	}
+	 else if(gameNumber==5)
+	{
+		new_game_board(game_tile_positions,game5);
+	}
+	 else if(gameNumber==6)
+	{
+		new_game_board(game_tile_positions,game6);
+	}
+	 else if(gameNumber==7)
+	{
+		new_game_board(game_tile_positions,game7);
+	}
+	 else if(gameNumber==8)
+	{
+		new_game_board(game_tile_positions,game8);
+	}
+	 else if(gameNumber==9)
+	{
+		new_game_board(game_tile_positions,game9);
+	}
+	else if(gameNumber==10)
+	{
+		new_game_board(game_tile_positions,game9);
+	}
     // generate an automatic winning board for demo
-    if (gameNumber == 6){
+    if (gameNumber == 10){
         new_game_board(game_tile_positions, game3);
         gameNumber = 0;
     } else {
