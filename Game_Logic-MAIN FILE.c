@@ -278,10 +278,11 @@ void PS2_ISR(){
 void shuffle()
 {
     if (game_over){
-        count = 0;
+        
         game_over = false;
         clear_screen();
     }
+	count = 0;
 
     int game0[] = {2,7,3,NO_TILE,1,6,5,4,8};
     int game1[] = {4,NO_TILE,2,5,6,7,8,1,3};
@@ -492,7 +493,7 @@ void counter()
 	int inter2;
 	int second;
 	// int minute;
-	while(count<=180)
+	while(count<=5)
 	{
 		second=((count % 3600) % 60);
 		// minute=(second % 3600)/60;
@@ -752,11 +753,8 @@ void plot_pixel(int x, int y, short int line_color)
 
 // clears screen by writing white
 void clear_screen(){
-    for (int x = 0; x < 320; ++x){
-        for (int y = 0; y < 240; ++y){
-            plot_pixel(x, y, 0xffff);
-        }
-    }
+    
+	memset((short int*) pixel_buffer_start,  0xffff, 245760 ); 
 }
 
 
@@ -841,3 +839,4 @@ void display_on_hex(int num_a, int num_b, int num_c, int num_d, int num_e, int n
     *HEX_5_4_ptr = seven_seg[num_f] << 8 | seven_seg[num_e];
 
 }
+//xel bytes for png corresponding to the number
