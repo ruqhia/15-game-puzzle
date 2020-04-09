@@ -493,7 +493,7 @@ void counter()
 	int inter2;
 	int second;
 	// int minute;
-	while(count<=5)
+	while(count<=180)
 	{
 		second=((count % 3600) % 60);
 		// minute=(second % 3600)/60;
