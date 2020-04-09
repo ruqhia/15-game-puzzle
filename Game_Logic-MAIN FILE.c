@@ -102,9 +102,9 @@ int main(){
     pixel_buffer_start = *pixel_ctrl_ptr;
 	clear_screen();
 	draw_initial_game_tiles();
+	
+    while(1)
 	counter();
-    while(1);
-
     return 0;
 
 }
@@ -278,9 +278,10 @@ void PS2_ISR(){
 void shuffle()
 {
     if (game_over){
-        
         game_over = false;
+		
         clear_screen();
+		count = 0;
     }
 	count = 0;
 
@@ -839,4 +840,3 @@ void display_on_hex(int num_a, int num_b, int num_c, int num_d, int num_e, int n
     *HEX_5_4_ptr = seven_seg[num_f] << 8 | seven_seg[num_e];
 
 }
-//xel bytes for png corresponding to the number
